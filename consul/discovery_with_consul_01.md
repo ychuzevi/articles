@@ -18,8 +18,6 @@ Criteo has been historically using large applications on bare-metal servers, wit
 
 But at that time, Criteo was starting to use Mesos in order to launch containerized apps on common hardware. It means that our deployment infrastructure (Chef) which was used to provision Mesos machines no longer had any knowledge about applications running on those machines.
 
--- It would be great to add a transition before switching on the benefits of virtualization --
-
 The advantage of virtualization of infrastructure is to provide a way to quickly re-use hardware to run various workloads. This is pretty cool because it brings the following benefits:
 
  - ability to run different workloads at the same time on a machine, think about an application consuming 75% of memory while using 10% of CPU and another using 10% of memory and using 60% of CPU, those 2 apps might be collocated on a single hardware and run smoothly on a single machine.
@@ -31,9 +29,7 @@ The advantage of virtualization of infrastructure is to provide a way to quickly
 
 The list goes on, but that's some of the main reasons people tend to prefer cloud-based or containerization of applications. All of this goes with some additional complexity however: applications can move very fast from a machine to another, change their IP, their port, so traditional tools such as DNS and databases are hard to scale efficiently to allow those kinds of new workloads.
 
-We will not detail all the features of Consul, but this software is basically a strongly consistent distributed KV, having features similar to products such as ETCD or Zookeeper, but a part of KV dedicated to Discovery oriented towards services. 
-
--- I would remove this (redundant with failure detection descried in below feature : "It also comes with interesting features regarding healthiness, most notably a mechanism to detect node failures." --
+We will not detail all the features of Consul, but this software is basically a strongly consistent distributed KV, having features similar to products such as ETCD or Zookeeper, but a part of KV dedicated to Discovery oriented towards services. It also comes with built-in feature to detect failing nodes (which is a pretty hard task in a distributed environment)
 
 Consul bring some very cool features:
  - no specific requirements in terms of network (you don't need to run a complicated Software Defined Network system), so all systems can talk with each others regardles of the fact that those systems are running in the Cloud, in containers or in traditional bare-metal machines
@@ -59,10 +55,18 @@ At the same time, we worked on mechanisms to declare automatically applications 
 
 Bringing mixed workloads brings its own issues however: a given service can now run either on a bare-metal server running all the CPUs of a machine and at the same time on smaller instances having less resources. It also means that the instances of a given service can have very different characteristics, whether the instance is running Windows, Linux, is deployed into a container or as a regular service. The need to describe those differences lead us to implement service metadata that could be retrieved by all the clients to take more appropriate decisions to target a given service.
 
-This mechanism was historically set-up using weights in our load-balancers. Those weights would then result is more or less requests being sent on a given machine given its generation (recent servers used to be more performant, so more weight was allocated according to them). Consul did not provide built-in mechanism to do so (some hacks were relying on tags, but no real standardization was present), so we decided to implement our own
+This mechanism was historically set-up using weights in our load-balancers. Those weights would then result is more or less requests being sent on a given machine given its generation (recent servers used to be more performant, so more weight was allocated according to them). Consul did not provide built-in mechanism to do so (some hacks were relying on tags, but no real standardization was present), so we decided to implement our own with a new added feature: the ability to automatically adjust the weight depending of the state of a given service.
 
 ## Load-Balancer provisioning
 
-Criteo has been running historically F5 Load-Balancers as well as HaProxy to target various systems within the datacenters.
+Criteo is historically using two kinds of load-balancing in its architecture:
+
+ - client side load balancing (aka Service Mesh): in this mode, used only within its datacenters, the application use an internal library (similar to systems such as Finatra) to find the nodes running their target service, and then target those instances of the service directly using HTTP. The benefits being that latency is reduced and it does not need any kind of server in the middle to route the trafic. With the number of instances of applications. We thus adapted those SDKs to use Consul instead of our legacy systems. Now all applications use a feature called blocking requests that allow being notified when the instances of a service do change (their status or the nodes).
+
+ - Traditionnal load-balancing has also been used for years, running F5 or HaProxy. We decided to use the same exact mechanism: watching all changes in Consul in order to trigger commands when nodes for a given service do change. By providing information into Consul (using tags), it also becomes possible to discover automatically the services that need to be added to our various load-balancers stacks.
+
+ Those 2 ways of provisionning do rely on the same exact semantics whithin Consul, we now have a system where you can use one client side load-balancing or the other and have the *same exact results*.
+
+ Load-balancing is a complete beast: sometimes, even if you use weights to route your trafic, some nodes will be slower than others. Whatever the reason (maintenance, scheduled task, Garbage Collection), somee instances of a given service will be able to sustain less load, or to reply bad answers. Heathchecks have been using traditionnally in our both stacks to ensure the node is answering correctly. Those healthchecks were traditionnaly using a binary state: working or not working. Consul also adds a third state called warning. This state can be interpreted freely by the end user. But in our added support for weights, we allowed service owners to add a specific weight for the state warning. It thus become possible to use a service in a degraded state (warning), so it means that if we can trigger this status when the node is too heavily loaded, we could use it as a ternary state to allow too loaded nodes to recover. The big advantage of having a non-binary state is that it avoid having a datacenter being completely down all nodes are too loaded: in that case, the first overloaded nodes will receive less trafic, redirecting some of the trafic to others, but if other are also overloaded, then trafic will be served anyway (at worse, all nodes are in warning state).
 
 
