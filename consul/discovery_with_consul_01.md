@@ -16,7 +16,7 @@ Since Criteo was running for a long time with those systems, why move to a new s
 
 Criteo has been historically using large applications (many running Windows) on bare-metal servers, without any kind of virtualization.
 
-But at that time, Criteo was starting to use Mesos in order to launch containerized apps in common hardware where chef could not find its place since it was used to provision Mesos machines, but dod not have any knowledge about applications running on those machines.
+But at that time, Criteo was starting to use Mesos in order to launch containerized apps in common hardware where chef could not find its place since it was used to provision Mesos machines, but did not have any knowledge about applications running on those machines.
 
 The advantage of virtualization of infrastructure is to provide a way to quickly re-use hardware to run various workloads, this is pretty cool and brings the following benefits:
 
