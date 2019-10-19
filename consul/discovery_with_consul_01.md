@@ -76,6 +76,8 @@ Criteo is historically using two kinds of load-balancing in its architecture:
 In the next articles, we will go deeper onto those subjects and see how industrialization of discovery will help Criteo and might help you changing radically how systems can talk / discover themselves and how it can change the way organizations and teams work in an era of micro-services.
 
 We will explain how:
+
+ * we patched Consul to improve performance with order of magnitude
  * we implemented libraries to integrate Consul in a streamlined way
  * we operate daily Consul on our large infrastructure (12 DCs, 40k nodes)
  * we implement/introduce Service Mesh with Consul Connect to allow all of our infrastructure talking with TLS
