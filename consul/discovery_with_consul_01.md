@@ -1,6 +1,6 @@
 # Discovery with Consul at scale
 
-This article is the first one talking about our usage around Consul and the work in the Discovery team, a team in charge of running Consul, integrating all parts of Criteo in a streamlined way and provide the SDKs for all applications to properly talk to each others.
+This article is the first one talking about our usage around Consul and the work in the Discovery team, a team in charge of running Consul, integrating all parts of Criteo in a streamlined way and provide the SDKs for all applications to properly talk to each other's.
 
 In those articles, we will talk about the reasons of moving to Consul, the various issues we found using it, the patches we issued (more than 60 upstream contributions), the way we design our SDKs and the future directions we will embrace.
 
@@ -10,7 +10,7 @@ More than three years ago, Criteo did choose Consul to discover services into ou
 
 Criteo used to rely on various systems to discover the services within the infrastructure: Chef queries (Chef is an automation system to deploy infrastructure), an in-house database-based system, and various other systems (Zookeeper, DNS, hardcoded paths).
 
-All of those heterogenous systems shared a few drawbacks: latency, huge implementation costs (lots of libraries) and difficulty to communicate with each other. Consistency of load balancing systems was also an issue since many systems did declare several healthchecks in order to guess whether a machine/service was up/down.
+All of those heterogenous systems shared a few drawbacks: latency, huge implementation costs (lots of libraries) and difficulty to communicate with each other. Consistency of load balancing systems was also an issue since many systems did declare several health checks in order to guess whether a machine/service was up/down.
 
 Since Criteo was running for a long time with those systems, why moving to a new system?
 
@@ -29,10 +29,10 @@ The advantage of virtualization of infrastructure is to provide a way to quickly
 
 The list goes on, but that's some of the main reasons people tend to prefer cloud-based or containerization of applications. All of this goes with some additional complexity however: applications can move very fast from a machine to another, change their IP, their port, so traditional tools such as DNS and databases are hard to scale efficiently to allow those kinds of new workloads.
 
-We will not detail all the features of Consul, but this software is basically a strongly consistent distributed KV, having features similar to products such as ETCD or Zookeeper, but a part of KV dedicated to Discovery oriented towards services. It also comes with built-in feature to detect failing nodes (which is a pretty hard task in a distributed environment) and distribute this information accross the whole cluster.
+We will not detail all the features of Consul, but this software is basically a strongly consistent distributed KV, having features similar to products such as ETCD or Zookeeper, but a part of KV dedicated to Discovery oriented towards services. It also comes with built-in feature to detect failing nodes (which is a pretty hard task in a distributed environment) and distribute this information across the whole cluster.
 
 Consul bring some very cool features:
- - no specific requirements in terms of network (you don't need to run a complicated Software Defined Network system), so all systems can talk with each others regardles of the fact that those systems are running in the Cloud, in containers or in traditional bare-metal machines
+ - no specific requirements in terms of network (you don't need to run a complicated Software Defined Network system), so all systems can talk with each other's regardles of the fact that those systems are running in the Cloud, in containers or in traditional bare-metal machines
  - service oriented: the machine is just a detail, everything is service centric, we don't care about being in a virtualized system, a real machine, being alone on the machine or sharing the machines with dozens of other services
  - ease of administration because it only requires another node to find all the nodes of the cluster: you don't need to provide a full list of systems, it can join "magically" other Consul enabled systems.
  - ability to detect failure of services using several health checks, so the app does not require to implement its own detection mechanism to detect failure (and human that do program systems have issues detecting and properly reacting to all possible failures)
@@ -61,19 +61,19 @@ This mechanism was historically set-up using weights in our load-balancers. Thos
 
 Criteo is historically using two kinds of load-balancing in its architecture:
 
- - client side load balancing (aka Service Mesh): in this mode, used only within its datacenters, the application use an internal library (similar to systems such as Finatra) to find the nodes running their target service, and then target those instances of the service directly using HTTP. The benefits being that latency is reduced and it does not need any kind of server in the middle to route the trafic. With the number of instances of applications. We thus adapted those SDKs to use Consul instead of our legacy systems. Now all applications use a feature called blocking requests that allow being notified when the instances of a service do change (their status or the nodes).
+ - client-side load balancing (aka Service Mesh): in this mode, used only within its datacenters, the application uses an internal library (similar to systems such as Finatra) to find the nodes running their target service, and then target those instances of the service directly using HTTP. The benefits being that latency is reduced and it does not need any kind of server in the middle to route the traffic. With the number of instances of applications. We thus adapted those SDKs to use Consul instead of our legacy systems. Now all applications use a feature called blocking requests that allow being notified when the instances of a service do change (their status or the nodes).
 
- - Traditionnal load-balancing has also been used for years, running F5 or HaProxy. We decided to use the same exact mechanism: watching all changes in Consul in order to trigger commands when nodes for a given service do change. By providing information into Consul (using tags), it also becomes possible to discover automatically the services that need to be added to our various load-balancers stacks.
+ - Traditional load-balancing has also been used for years, running F5 or HaProxy. We decided to use the same exact mechanism: watching all changes in Consul in order to trigger commands when nodes for a given service do change. By providing information into Consul (using tags), it also becomes possible to discover automatically the services that need to be added to our various load-balancers stacks.
 
- Those 2 ways of provisionning do rely on the same exact semantics whithin Consul, we now have a system where you can use one client side load-balancing or the other and have the *same exact results*.
+ Those 2 ways of provisioning do rely on the same exact semantics within Consul, we now have a system where you can use one client side load-balancing or the other and have the *same exact results*.
 
- Load-balancing is a complete beast: sometimes, even if you use weights to route your trafic, some nodes will be slower than others. Whatever the reason (maintenance, scheduled task, Garbage Collection), some instances of a given service will be able to sustain less load, or to reply bad answers. Heathchecks have been using traditionnally in our both stacks to ensure the node is answering correctly. Those healthchecks were traditionnaly using a binary state: working or not working. Consul also adds a third state called warning. This state can be interpreted freely by the end user. But in our added support for weights, we allowed service owners to add a specific weight for the state warning. It thus become possible to use a service in a degraded state (warning), so it means that if we can trigger this status when the node is too heavily loaded, we could use it as a ternary state to allow too loaded nodes to recover. The big advantage of having a non-binary state is that it avoid having a datacenter being completely down all nodes are too loaded: in that case, the first overloaded nodes will receive less trafic, redirecting some of the trafic to others, but if other are also overloaded, then trafic will be served anyway (at worse, all nodes are in warning state).
+ Load-balancing is a complete beast: sometimes, even if you use weights to route your traffic, some nodes will be slower than others. Whatever the reason (maintenance, scheduled task, Garbage Collection), some instances of a given service will be able to sustain less load, or to reply bad answers. Heathchecks have been using traditionally in our both stacks to ensure the node is answering correctly. Those health checks were using a binary state: working or not working. Consul also adds a third state called warning. This state can be interpreted freely by the end user. But in our added support for weights, we allowed service owners to add a specific weight for the state warning. It thus become possible to use a service in a degraded state (warning), so it means that if we can trigger this status when the node is too heavily loaded, we could use it as a ternary state to allow too loaded nodes to recover. The big advantage of having a non-binary state is that it avoid having a datacenter being completely down all nodes are too loaded: in that case, the first overloaded nodes will receive less traffic, redirecting some of the traffic to others, but if other are also overloaded, then traffic will be served anyway (at worse, all nodes are in warning state).
 
-# Towards more sophistated discovery
+# Towards more advanced discovery and new patterns
 
 In the next articles, we will go deeper onto those subjects and see how industrialization of discovery will help Criteo and might help you changing radically how systems can talk / discover themselves and how it can change the way organizations and teams work in an era of micro-services.
 
 We will explain how:
- * we implemented libraries to integrate Consul in a steamlined way
+ * we implemented libraries to integrate Consul in a streamlined way
  * how we introduce Service Mesh with Consul Connect
  * How we use what we call Inversion Of Control to create new patterns around infrastructure
