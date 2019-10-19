@@ -75,5 +75,6 @@ In the next articles, we will go deeper onto those subjects and see how industri
 
 We will explain how:
  * we implemented libraries to integrate Consul in a streamlined way
- * how we introduce Service Mesh with Consul Connect
- * How we use what we call Inversion Of Control to create new patterns around infrastructure
+ * we operate daily Consul on our large infrastructure (12 DCs, 40k nodes)
+ * we implement/introduce Service Mesh with Consul Connect to allow all of our infrastructure talking with TLS
+ * we use what we call Inversion Of Control to create new patterns around infrastructure
