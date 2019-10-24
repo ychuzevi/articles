@@ -1,6 +1,6 @@
 # Discovery with Consul at scale
 
-This article is the first one talking about our usage around Consul and the work in the Discovery team, a team in charge of running Consul, integrating all parts of Criteo in a streamlined way and provide the SDKs for all applications to properly talk to each other's.
+This article is the first one talking about our usage around Consul and the work in the Discovery team. We are a team in charge of running Consul, integrating all parts of Criteo in a streamlined way and providing SDKs for all applications to properly talk to each other's.
 
 In those articles, we will talk about the reasons of moving to Consul, the various issues we found using it, the patches we issued (more than 60 upstream contributions), the way we design our SDKs and the future directions we will embrace.
 
@@ -18,7 +18,7 @@ Criteo has been historically using large applications on bare-metal servers, wit
 
 But at that time, Criteo was starting to use Mesos in order to launch containerized apps on common hardware. It means that our deployment infrastructure (Chef) which was used to provision Mesos machines no longer had any knowledge about applications running on those machines.
 
-The advantage of virtualization of infrastructure is to provide a way to quickly re-use hardware to run various workloads. This is pretty cool because it brings the following benefits:
+One advantage of infrastructure virtualization is to provide a way to quickly re-use hardware to run various workloads. This is pretty cool because it brings the following benefits:
 
  - ability to run different workloads at the same time on a machine, think about an application consuming 75% of memory while using 10% of CPU and another using 10% of memory and using 60% of CPU, those 2 apps might be collocated on a single hardware and run smoothly on a single machine.
  It has always been hard to do so historically because several applications tend to "pollute" filesystems and/or take the whole resources of the machine when something goes bad. But with the democratization of containerization, it is now possible on modern operating systems to provide some real isolation for most resources.
@@ -27,16 +27,16 @@ The advantage of virtualization of infrastructure is to provide a way to quickly
  - less combinations of OS configurations to maintain for people in charge of infrastructure
  - less time to go to market when a new product is being launched since you can use free machines from the global pool
 
-The list goes on, but that's some of the main reasons people tend to prefer cloud-based or containerization of applications. All of this goes with some additional complexity however: applications can move very fast from a machine to another, change their IP, their port, so traditional tools such as DNS and databases are hard to scale efficiently to allow those kinds of new workloads.
+The list goes on, but that's some of the main reasons people tend to prefer cloud-based or containerized applications. All of this goes with some additional complexity however: applications can move very fast from a machine to another, change their IP, their port, so traditional tools such as DNS and databases are hard to scale efficiently to allow those kinds of new workloads.
 
 We will not detail all the features of Consul, but this software is basically a strongly consistent distributed KV, having features similar to products such as ETCD or Zookeeper, but a part of KV dedicated to Discovery oriented towards services. It also comes with built-in feature to detect failing nodes (which is a pretty hard task in a distributed environment) and distribute this information across the whole cluster.
 
-Consul bring some very cool features:
+Consul bring some nice features:
  - no specific requirements in terms of network (you don't need to run a complicated Software Defined Network system), so all systems can talk with each other's regardles of the fact that those systems are running in the Cloud, in containers or in traditional bare-metal machines
  - service oriented: the machine is just a detail, everything is service centric, we don't care about being in a virtualized system, a real machine, being alone on the machine or sharing the machines with dozens of other services
  - ease of administration because it only requires another node to find all the nodes of the cluster: you don't need to provide a full list of systems, it can join "magically" other Consul enabled systems.
  - ability to detect failure of services using several health checks, so the app does not require to implement its own detection mechanism to detect failure (and human that do program systems have issues detecting and properly reacting to all possible failures)
- - ability of being notified almost immediately when services do change and to provide tools to easily generate mutable configurations using tools like consul-template
+ - ability of being notified almost immediately when services do change and to provide tools to easily generate mutable configurations  like consul-template
  - nice DNS gateway, which allow to quickly allow any app to interact with other Consul-declared systems whenever this app is Consul-aware.
 
 ## From nothing to Universal Discovery
@@ -51,11 +51,11 @@ Since Criteo systems are highly automated for the most parts, the move was done 
 
 ## Mesos to Consul
 
-At the same time, we worked on mechanisms to declare automatically applications running on Mesos, so those applications could be declared in Mesos frameworks (we mainly use Marathon as a framework for Mesos) and automatically registered into Consul at the same time with semantics similar to what had been provisioned in the other parts of infrastructure. It then becomes possible to run existing services in both bare-metal and within Mesos. Consul then hides the details and clients can find their target services running in mixed pools (50% bare-metal, 50% Mesos for instance).
+At the same time, we worked on mechanisms to declare automatically applications running on Mesos, so those applications could be declared in Mesos frameworks (we mainly use Marathon as a framework for Mesos) and automatically registered into Consul at the same time with semantics similar to what had been provisioned in the other parts of infrastructure. It then becomes possible to run existing services in both bare-metal and within Mesos. Consul hides the details and clients can find their target services running in mixed pools (50% bare-metal, 50% Mesos for instance).
 
 Bringing mixed workloads brings its own issues however: a given service can now run either on a bare-metal server running all the CPUs of a machine and at the same time on smaller instances having less resources. It also means that the instances of a given service can have very different characteristics, whether the instance is running Windows, Linux, is deployed into a container or as a regular service. The need to describe those differences lead us to implement service metadata that could be retrieved by all the clients to take more appropriate decisions to target a given service.
 
-This mechanism was historically set-up using weights in our load-balancers. Those weights would then result is more or less requests being sent on a given machine given its generation (recent servers used to be more performant, so more weight was allocated according to them). Consul did not provide built-in mechanism to do so (some hacks were relying on tags, but no real standardization was present), so we decided to implement our own with a new added feature: the ability to automatically adjust the weight depending of the state of a given service.
+This mechanism was historically set-up using weights in our load-balancers. Those weights would result is more or less requests being sent on a given machine given its generation (recent servers used to be more performant, so more weight was allocated according to them). Consul did not provide built-in mechanism to do so (some hacks were relying on tags, but no real standardization was present), so we decided to implement our own with a new added feature: the ability to automatically adjust the weight depending of the state of a given service.
 
 ## Load-Balancer provisioning
 
@@ -65,7 +65,7 @@ Criteo is historically using two kinds of load-balancing in its architecture:
 
  - Traditional load-balancing has also been used for years, running F5 or HaProxy. We decided to use the same exact mechanism: watching all changes in Consul in order to trigger commands when nodes for a given service do change. By providing information into Consul (using tags), it also becomes possible to discover automatically the services that need to be added to our various load-balancers stacks.
 
- Those 2 ways of provisioning do rely on the same exact semantics within Consul, we now have a system where you can use one client side load-balancing or the other and have the *same exact results*.
+ Those 2 ways of provisioning do rely on the same exact semantics within Consul, we now have a system where you can use client side load-balancing or load balancers and have the *same exact results*.
 
  Load-balancing is a complex beast: sometimes, even if you use weights to route your traffic, some nodes will be slower than others. Whatever the reason (maintenance, scheduled task, Garbage Collection), some instances of a given service will be able to sustain less load, or to reply bad answers because of misconfiguation, depedencies in a bad state or simply by being overloaded.
  
