@@ -4,7 +4,7 @@ This is the third article of our series on Consul and service discovery at Crite
 
 Consul servers may be distributed but their numbers is limited (we use cluster of 5 per datacenter). And if you are not careful, Consul requests may all be forwarded to the cluster's leader. On the other hand, you loose a lot of Consul's benefits if you restrict too much the calls to Consul.
 
-At Criteo, we have around 4000 services registered in Consul, running in 12 datacenters for a total of 270 thousands instances. The behavior of Consul clients is hence important in order to scale.
+At Criteo, we have around 4000 services registered in Consul, running in 12 datacenters for a total of 270 thousands instances. The behavior of Consul clients is hence really important in order to scale.
 
 ## A brief history
 
@@ -24,9 +24,9 @@ We also spent a bit of time crafting error messages and diagnostic tools. As Con
 
 As explained in the previous article, the first point is that we rely heavily on [blocking queries](https://www.consul.io/api/features/blocking.html) (long polling). Clients are notified immediately when a service changes. And when there is no change, the number of request sent to the servers is minimal. We also followed the recommendation to perform some throttling when a service is continuously updated (although this is something we are actively trying to avoid).
 
-We make sure that requests are made with [consistency parameter](https://www.consul.io/api/features/consistency.html) set to stale. This prevents the Consul servers to forward all the requests to the leader and ensures a better availability. It doesn’t mean we are serving stale data: we are closely monitoring the replication between Consul servers. We actually went further and added an option to Consul to change the [default consistency behavior](https://www.consul.io/docs/agent/options.html#discovery_max_stale) (see [PR](https://github.com/hashicorp/consul/pull/3920)) and force it to stale. It is helpful for projects not relying on managed SDKs.
+We make sure that requests are made with [consistency parameter](https://www.consul.io/api/features/consistency.html) set to stale. This prevents the Consul servers to forward all the requests to the leader and ensures a better availability. It doesn’t mean we are serving stale data: we are closely monitoring the replication between Consul servers. We actually went further and added an option to Consul to change the [default consistency behavior](https://www.consul.io/docs/agent/options.html#discovery_max_stale) (see [Pull Request](https://github.com/hashicorp/consul/pull/3920)) and force it to stale. It is helpful for projects not relying on managed SDKs.
 
-Another useful option is [agent caching](https://www.consul.io/api/features/caching.html). It allows the local Consul agent to answer a request without relying on the Consul servers if a similar request was made in the near past. This helps when many applications are running on the same server. An important use case is of course containerized applications. Applications often have some common dependencies (e.g. metric service, databases, etc.). We also have application which runs multiple instances per server (mostly IIS) and the gain if even bigger.
+Another useful option is [agent caching](https://www.consul.io/api/features/caching.html). It allows the local Consul agent to answer a request without relying on the Consul servers if a similar request was made in the near past. This helps when many applications are running on the same server. An important use case is of course containerized applications. Applications often have some common dependencies (e.g. metric service, databases, etc.). We also have application which runs multiple instances per server (mostly IIS) and the gain is even bigger.
 
 ## Next steps
 
